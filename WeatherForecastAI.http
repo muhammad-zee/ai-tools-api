@@ -1,0 +1,15 @@
+@WeatherForecastAI_HostAddress = http://localhost:5137
+
+GET {{WeatherForecastAI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{WeatherForecastAI_HostAddress}}/agent/ask
+Content-Type: application/json
+
+{
+  "prompt": "I'm at the farm in Gojra, what should I wear?"
+}
+
+###
