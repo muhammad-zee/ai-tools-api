@@ -3,7 +3,9 @@ using iTextSharp.text.pdf;
 using iTextSharp.text.pdf.parser;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Embeddings;
+using WeatherForecastAI.Models;
 
 namespace WeatherForecastAI.Controllers
 {
@@ -17,12 +19,14 @@ namespace WeatherForecastAI.Controllers
         private readonly InMemoryVectorStore _vectorStore;
         public readonly Kernel _kernel;
         private readonly ITextEmbeddingGenerationService _embeddingGenerator;
+        private readonly ChatSessionStore _chatSessionStore;
 
-        public RagController(InMemoryVectorStore vectorStore, Kernel kernel, ITextEmbeddingGenerationService embeddingGenerator)
+        public RagController(InMemoryVectorStore vectorStore, Kernel kernel, ITextEmbeddingGenerationService embeddingGenerator, ChatSessionStore chatSessionStore)
         {
             _vectorStore = vectorStore;
             _kernel = kernel;
             _embeddingGenerator = embeddingGenerator;
+            _chatSessionStore = chatSessionStore;
         }
 
         [HttpPost("ingest")]
@@ -65,32 +69,91 @@ namespace WeatherForecastAI.Controllers
 
             return Ok(new
             {
-                SessionId = sessionId,
-                Vectors = vector
+                sessionId = sessionId
             });
         }
 
         [HttpPost("chat/{sessionId}")]
-        public async Task<IActionResult> Chat(string sessionId, [FromBody] string userMessage)
+        public async Task<IActionResult> Chat(string sessionId, [FromBody] RegChatPayload parameter)
         {
+            var question = parameter.question;
+
+            if (string.IsNullOrWhiteSpace(question))
+            {
+                return BadRequest(new { error = "Question cannot be empty." });
+            }
+
+            _vectorStore.RemoveExpired(SessionTtl);
+            _chatSessionStore.RemoveExpired(SessionTtl);
+
             var embeddings = _vectorStore.GetEmbeddingsForSession(sessionId);
             if (embeddings.Count == 0)
             {
-                return NotFound("No embeddings found for the given session ID.");
+                return BadRequest(new { error = "Session does not exist." });
             }
 
-            var userEmbedding = await _embeddingGenerator.GenerateEmbeddingsAsync(new List<string> { userMessage });
+            var userEmbedding = await _embeddingGenerator.GenerateEmbeddingsAsync(new List<string> { question });
             var userVector = userEmbedding[0].ToArray();
 
             // Find the most similar chunk based on cosine similarity
-            var mostSimilarChunk = embeddings.OrderByDescending(e => CosineSimilarity(userVector, e.Embedding)).FirstOrDefault();
+              var topChunks = embeddings
+            .OrderByDescending(e => CosineSimilarity(userVector, e.Embedding))
+            .Take(5)
+            .Select(e => e.ChunkText);
+            var contextText = string.Join("\n---\n", topChunks);
 
-            // Use the most similar chunk as context for the AI model
-            var prompt = $"Context: {mostSimilarChunk.ChunkText}\nUser: {userMessage}\nAI:";
-            var result = await _kernel.InvokePromptAsync(prompt);
 
-            return Ok(new { reply = result.ToString() });
+            var history = _chatSessionStore.GetOrCreate(sessionId);
+            var workingHistory = new ChatHistory();
+            workingHistory.AddSystemMessage($"Use the following context to answer the question. If the answer isn't in the context, say you don't know.\n\nContext:\n{contextText}");
+            foreach (var message in history)
+            {
+                workingHistory.Add(message);
+            }
+            workingHistory.AddUserMessage(question);
+
+
+
+            var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+            var response = await chatCompletionService.GetChatMessageContentsAsync(workingHistory, kernel: _kernel);
+            var reply = response[0].Content ?? string.Empty;
+
+            // Only the plain Q&A goes into long-term memory, not the context blob.
+            history.AddUserMessage(question);
+            history.AddAssistantMessage(reply);
+            _chatSessionStore.Touch(sessionId);
+
+
+            // // Use the most similar chunk as context for the AI model
+            // var prompt = $"Context: {contextText}\nUser: {question}\nAI:";
+            // var result = await _kernel.InvokePromptAsync(prompt);
+
+            return Ok(new { reply = reply });
+
         }
+        
+
+        private static double CosineSimilarity(float[] vectorA, float[] vectorB)
+        {
+            double dotProduct = 0;
+            double magnitudeA = 0;
+            double magnitudeB = 0;
+
+            for (int i = 0; i < vectorA.Length; i++)
+            {
+                dotProduct += vectorA[i] * vectorB[i];
+                magnitudeA += vectorA[i] * vectorA[i];
+                magnitudeB += vectorB[i] * vectorB[i];
+            }
+
+            if (magnitudeA == 0 || magnitudeB == 0)
+            {
+                return 0;
+            }
+
+            return dotProduct / (Math.Sqrt(magnitudeA) * Math.Sqrt(magnitudeB));
+        }
+
         private static List<string> ChunkText(string text, int chunkSizeWords = 500, int overlapWords = 100)
         {
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);

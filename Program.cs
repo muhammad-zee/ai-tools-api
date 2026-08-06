@@ -26,7 +26,7 @@ var kernelBuilder = Kernel.CreateBuilder();
 
 #pragma warning disable SKEXP0070 // This hides the 'experimental' warning for Ollama
 kernelBuilder.AddOllamaChatCompletion(
-    modelId: "llama3.2",
+    modelId: "llama3.2:1b",
     endpoint: new Uri("http://localhost:11434")
 ).AddOllamaTextEmbeddingGeneration(
     modelId: "nomic-embed-text",
@@ -40,6 +40,7 @@ var kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);
 builder.Services.AddSingleton(kernel.GetRequiredService<ITextEmbeddingGenerationService>());
 builder.Services.AddSingleton<InMemoryVectorStore>();
+builder.Services.AddSingleton<ChatSessionStore>();
 
 var app = builder.Build();
 
