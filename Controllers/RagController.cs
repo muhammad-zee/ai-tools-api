@@ -12,6 +12,8 @@ namespace WeatherForecastAI.Controllers
     [Route("[controller]")]
     public class RagController : ControllerBase
     {
+        private static readonly TimeSpan SessionTtl = TimeSpan.FromHours(24);
+
         private readonly InMemoryVectorStore _vectorStore;
         public readonly Kernel _kernel;
         private readonly ITextEmbeddingGenerationService _embeddingGenerator;
@@ -53,6 +55,8 @@ namespace WeatherForecastAI.Controllers
 
             var textChunks = ChunkText(fileRawText);
             var vector = await _embeddingGenerator.GenerateEmbeddingsAsync(textChunks);
+
+            _vectorStore.RemoveExpired(SessionTtl);
 
             for (int i = 0; i < textChunks.Count; i++)
             {
