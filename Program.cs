@@ -1,12 +1,25 @@
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Ollama;
+using Microsoft.SemanticKernel.Embeddings;
 using System.ComponentModel;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string AngularClientPolicy = "AngularClient";
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(AngularClientPolicy, policy =>
+    {
+        policy.WithOrigins("http://localhost:4200")
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
 
 // 1. Setup the Kernel with Local Ollama
 var kernelBuilder = Kernel.CreateBuilder();
@@ -15,6 +28,9 @@ var kernelBuilder = Kernel.CreateBuilder();
 kernelBuilder.AddOllamaChatCompletion(
     modelId: "llama3.2",
     endpoint: new Uri("http://localhost:11434")
+).AddOllamaTextEmbeddingGeneration(
+    modelId: "nomic-embed-text",
+    endpoint: new Uri("http://localhost:11434")
 );
 
 // 2. Register your C# Tool
@@ -22,6 +38,8 @@ kernelBuilder.Plugins.AddFromType<WeatherPlugin>();
 
 var kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);
+builder.Services.AddSingleton(kernel.GetRequiredService<ITextEmbeddingGenerationService>());
+builder.Services.AddSingleton<InMemoryVectorStore>();
 
 var app = builder.Build();
 
@@ -30,6 +48,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(AngularClientPolicy);
 
 app.MapControllers();
 
