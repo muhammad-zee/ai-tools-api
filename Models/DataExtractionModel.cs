@@ -18,6 +18,18 @@ namespace WeatherForecastAI.Models
             public string Reason { get; set; }
         }
 
+        public class CvExtractionResult
+        {
+            public DocumentConfidence Confidence { get; set; }
+            public CvData CvDetails { get; set; }
+        }
+
+        public class InvoiceExtractionResult
+        {
+            public DocumentConfidence Confidence { get; set; }
+            public InvoiceData InvoiceDetails { get; set; }
+        }
+
         // --- Structure for Resumes / CVs ---
         public class CvData
         {
