@@ -70,6 +70,27 @@ namespace WeatherForecastAI.Controllers
             });
         }
 
+        [HttpPost("chat/{sessionId}")]
+        public async Task<IActionResult> Chat(string sessionId, [FromBody] string userMessage)
+        {
+            var embeddings = _vectorStore.GetEmbeddingsForSession(sessionId);
+            if (embeddings.Count == 0)
+            {
+                return NotFound("No embeddings found for the given session ID.");
+            }
+
+            var userEmbedding = await _embeddingGenerator.GenerateEmbeddingsAsync(new List<string> { userMessage });
+            var userVector = userEmbedding[0].ToArray();
+
+            // Find the most similar chunk based on cosine similarity
+            var mostSimilarChunk = embeddings.OrderByDescending(e => CosineSimilarity(userVector, e.Embedding)).FirstOrDefault();
+
+            // Use the most similar chunk as context for the AI model
+            var prompt = $"Context: {mostSimilarChunk.ChunkText}\nUser: {userMessage}\nAI:";
+            var result = await _kernel.InvokePromptAsync(prompt);
+
+            return Ok(new { reply = result.ToString() });
+        }
         private static List<string> ChunkText(string text, int chunkSizeWords = 500, int overlapWords = 100)
         {
             var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
