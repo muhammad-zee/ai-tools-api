@@ -64,7 +64,7 @@ namespace WeatherForecastAI.Controllers
 
             for (int i = 0; i < textChunks.Count; i++)
             {
-                _vectorStore.AddEmbedding(sessionId, textChunks[i], vector[i].ToArray());
+                _vectorStore.AddEmbedding(sessionId, file.FileName, textChunks[i], vector[i].ToArray());
             }
 
             return Ok(new
@@ -96,11 +96,25 @@ namespace WeatherForecastAI.Controllers
             var userVector = userEmbedding[0].ToArray();
 
             // Find the most similar chunk based on cosine similarity
-              var topChunks = embeddings
-            .OrderByDescending(e => CosineSimilarity(userVector, e.Embedding))
-            .Take(5)
-            .Select(e => e.ChunkText);
-            var contextText = string.Join("\n---\n", topChunks);
+            var topChunks = embeddings
+          .OrderByDescending(e => CosineSimilarity(userVector, e.Embedding))
+          .Take(5)
+          .Select(e => e.ChunkText);
+            var topMatches = embeddings
+        .OrderByDescending(e => CosineSimilarity(userVector, e.Embedding))
+        .Take(5)
+        .ToList();
+
+            var contextText = string.Join("\n---\n", topMatches.Select(e => e.ChunkText));
+
+            var sources = topMatches
+                .Select(e => new
+                {
+                    documentName = e.DocumentName,
+                    snippet = e.ChunkText.Length > 150 ? e.ChunkText[..150] + "..." : e.ChunkText
+                })
+                .DistinctBy(s => s.documentName)
+                .ToList();
 
 
             var history = _chatSessionStore.GetOrCreate(sessionId);
@@ -128,7 +142,7 @@ namespace WeatherForecastAI.Controllers
             // var prompt = $"Context: {contextText}\nUser: {question}\nAI:";
             // var result = await _kernel.InvokePromptAsync(prompt);
 
-            return Ok(new { reply = reply });
+            return Ok(new { reply = reply, sources = sources });
 
         }
         

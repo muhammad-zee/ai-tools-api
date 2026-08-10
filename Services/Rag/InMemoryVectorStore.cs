@@ -1,6 +1,6 @@
 public class InMemoryVectorStore
 {
-    private readonly List<(string SessionId, string ChunkText, float[] Embedding, DateTime CreatedAt)> _embeddings = new();
+    private readonly List<(string SessionId, string DocumentName, string ChunkText, float[] Embedding, DateTime CreatedAt)> _embeddings = new();
     private readonly object _lock = new();
 
     public void RemoveExpired(TimeSpan maxAge)
@@ -12,15 +12,15 @@ public class InMemoryVectorStore
         }
     }
 
-    public void AddEmbedding(string sessionId, string chunkText, float[] embedding)
+    public void AddEmbedding(string sessionId, string documentName, string chunkText, float[] embedding)
     {
         lock (_lock)
         {
-            _embeddings.Add((sessionId, chunkText, embedding, DateTime.UtcNow));
+            _embeddings.Add((sessionId, documentName, chunkText, embedding, DateTime.UtcNow));
         }
     }
 
-    public List<(string SessionId, string ChunkText, float[] Embedding, DateTime CreatedAt)> GetEmbeddingsForSession(string sessionId)
+    public List<(string SessionId, string DocumentName, string ChunkText, float[] Embedding, DateTime CreatedAt)> GetEmbeddingsForSession(string sessionId)
     {
         lock (_lock)
         {

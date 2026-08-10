@@ -102,19 +102,21 @@ Function calling + agentic loops. The real version of "AI agents," not just inte
 
 ---
 
-## Project 4 — AI-Powered Mobile Feature (optional, your differentiator)
-**Time: 3–4 days · Note: this one is Flutter**
+## Project 4 — AI-Powered Mobile Feature, built as an Angular PWA
+**Time: 3–4 days · Stack: Angular PWA (not Flutter — decided against it since this is a web dev skillset, not mobile)**
 
-You said you're focusing on .NET + Angular, so treat this as **optional** — but it's where you and your partners (Farhan & Nasir, Flutter devs) stand out, since most Upwork AI freelancers can't do polished cross-platform mobile. If you skip Flutter, you can build the same idea as an **Angular PWA / mobile-responsive web app** instead.
+Originally scoped as a Flutter app, but since the skillset here is .NET + Angular (not mobile), this is being built as an **Angular PWA / mobile-responsive web app** instead — same end result for the user, no new framework to pick up. A PWA is just the existing Angular app plus a `manifest.json`, a service worker (Angular's `@angular/pwa` schematic handles most of this), and responsive design — it's installable and feels native, but it's built with skills already in hand.
 
 ### What it does
-A mobile (or mobile-web) app with a genuinely useful AI feature talking to your .NET AI backend — e.g. voice notes → structured summary, or snap a photo → AI describes/analyzes it.
+A mobile-web app with a genuinely useful AI feature talking to your .NET AI backend — e.g. voice notes → structured summary, or snap a photo → AI describes/analyzes it. Both are achievable with browser-native APIs, no native mobile code required:
+- **Voice notes → structured summary:** the browser's `MediaRecorder` API records audio directly from the mic (works in mobile browsers same as desktop) → send the audio to the .NET backend → transcribe → run through the same extraction/summary pattern as Project 1.
+- **Snap a photo → AI describes it:** `<input type="file" accept="image/*" capture="camera">` opens the phone's camera directly from a plain HTML form → send the image to the backend → run through an image-capable AI call.
 
 ### Business pitch
-"AI-powered apps across web *and* mobile." Makes Globulars distinct from single-platform freelancers.
+"AI-powered apps across web *and* mobile." Makes Globulars distinct from single-platform freelancers — without needing to actually maintain a separate mobile codebase.
 
 ### Skill learned
-Connecting a mobile/PWA front end to your AI backend — the full product story.
+Connecting a mobile-web (PWA) front end to the AI backend, plus browser-native mic/camera APIs — the full product story, entirely within the existing Angular/.NET stack.
 
 ---
 
