@@ -26,7 +26,7 @@ var kernelBuilder = Kernel.CreateBuilder();
 
 #pragma warning disable SKEXP0070 // This hides the 'experimental' warning for Ollama
 kernelBuilder.AddOllamaChatCompletion(
-    modelId: "llama3.2:1b",
+    modelId: "llama3.2",
     endpoint: new Uri("http://localhost:11434")
 ).AddOllamaTextEmbeddingGeneration(
     modelId: "nomic-embed-text",
@@ -36,6 +36,7 @@ kernelBuilder.AddOllamaChatCompletion(
 // 2. Register your C# Tool
 kernelBuilder.Plugins.AddFromType<WeatherPlugin>();
 kernelBuilder.Plugins.AddFromType<WebResearchPlugin>();
+kernelBuilder.Plugins.AddFromType<CalculatorPlugin>();
 
 var kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);

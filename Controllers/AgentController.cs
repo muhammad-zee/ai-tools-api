@@ -29,12 +29,17 @@ namespace WeatherForecastAI.Controllers
             {
                 return BadRequest("Question cannot be empty.");
             }
+            var agentStepTracker = new AgentStepTracker();
+            var requestKernel = _kernel.Clone();
+            requestKernel.FunctionInvocationFilters.Add(new AgentStepLoggingFilter(agentStepTracker));
 
             var history = new ChatHistory();
             history.AddSystemMessage(
                 "You are a research assistant. Before writing anything, use your available tools to search for " +
                 "relevant facts. If one search isn't enough to cover the topic, search again with a more specific " +
-                "query. Only write the final article once you have enough information.");
+                "query. Only write the final article once you have enough information. " +
+                "If a tool result starts with SEARCH_FAILED, do not write an answer from your own assumed " +
+                "knowledge - tell the user that topic could not be researched instead.");
             history.AddUserMessage(parameter.question);
 
             PromptExecutionSettings settings = new()
@@ -43,9 +48,9 @@ namespace WeatherForecastAI.Controllers
             };
 
             var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
-            var response = await chatCompletionService.GetChatMessageContentsAsync(history, settings, _kernel);
+            var response = await chatCompletionService.GetChatMessageContentsAsync(history, settings, requestKernel);
 
-            return Ok(new { reply = response[0].Content ?? string.Empty });
+            return Ok(new { reply = response[0].Content ?? string.Empty, steps= agentStepTracker.Steps });
         }
 
 

@@ -21,7 +21,8 @@ public class WebResearchPlugin
         var pageTitle = await FindBestMatchingTitleAsync(query);
         if (pageTitle == null)
         {
-            return $"No Wikipedia results found for '{query}'.";
+            return $"SEARCH_FAILED: No Wikipedia results found for '{query}'. Do not answer this from your own " +
+                   "assumed knowledge - tell the user this specific topic could not be researched.";
         }
 
         return await GetPageSummaryAsync(pageTitle);
@@ -56,14 +57,19 @@ public class WebResearchPlugin
         using var response = await _httpClient.GetAsync(summaryUrl);
         if (!response.IsSuccessStatusCode)
         {
-            return $"Could not retrieve a summary for '{pageTitle}'.";
+            return $"SEARCH_FAILED: Could not retrieve a summary for '{pageTitle}'. Do not answer this from your " +
+                   "own assumed knowledge - tell the user this specific topic could not be researched.";
         }
 
         using var stream = await response.Content.ReadAsStreamAsync();
         using var document = await JsonDocument.ParseAsync(stream);
 
-        return document.RootElement.TryGetProperty("extract", out var extract)
-            ? extract.GetString() ?? "No summary available."
-            : "No summary available.";
+        if (!document.RootElement.TryGetProperty("extract", out var extract) || string.IsNullOrWhiteSpace(extract.GetString()))
+        {
+            return $"SEARCH_FAILED: No summary available for '{pageTitle}'. Do not answer this from your own " +
+                   "assumed knowledge - tell the user this specific topic could not be researched.";
+        }
+
+        return extract.GetString()!;
     }
 }
