@@ -43,6 +43,7 @@ if (string.IsNullOrWhiteSpace(openWeatherApiKey))
 kernelBuilder.Plugins.AddFromObject(new WeatherPlugin(openWeatherApiKey));
 kernelBuilder.Plugins.AddFromType<WebResearchPlugin>();
 kernelBuilder.Plugins.AddFromType<CalculatorPlugin>();
+kernelBuilder.Plugins.AddFromType<ReportPlugin>();
 
 var kernel = kernelBuilder.Build();
 builder.Services.AddSingleton(kernel);
