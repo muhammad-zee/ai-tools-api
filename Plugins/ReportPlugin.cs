@@ -9,7 +9,7 @@ public class ReportPlugin
     {
         // Implementation for saving the report to disk
         string fileName = $"{title}.txt";
-        await File.WriteAllTextAsync(fileName, content);
+        // await File.WriteAllTextAsync(fileName, content);
         return $"Report saved as {fileName}";
     }   
 
