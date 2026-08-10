@@ -2,6 +2,8 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.Ollama;
 using Microsoft.SemanticKernel.Embeddings;
 using System.ComponentModel;
+using Whisper.net;
+using Whisper.net.Ggml;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +22,7 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
+var modelPath = Path.Combine(Directory.GetCurrentDirectory(), "ggml-base.bin");
 
 // 1. Setup the Kernel with Local Ollama
 var kernelBuilder = Kernel.CreateBuilder();
@@ -50,6 +53,17 @@ builder.Services.AddSingleton(kernel);
 builder.Services.AddSingleton(kernel.GetRequiredService<ITextEmbeddingGenerationService>());
 builder.Services.AddSingleton<InMemoryVectorStore>();
 builder.Services.AddSingleton<ChatSessionStore>();
+
+
+if (!File.Exists(modelPath))
+{
+    using var modelStream = await WhisperGgmlDownloader.Default.GetGgmlModelAsync(GgmlType.Base, QuantizationType.NoQuantization);
+    using var fileWriter = File.Create(modelPath);
+    await modelStream.CopyToAsync(fileWriter);
+}
+
+var whisperFactory = WhisperFactory.FromPath(modelPath);
+builder.Services.AddSingleton(whisperFactory);
 
 var app = builder.Build();
 
