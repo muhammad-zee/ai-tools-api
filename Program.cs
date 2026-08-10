@@ -10,7 +10,7 @@ const string AngularClientPolicy = "AngularClient";
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddHttpClient();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(AngularClientPolicy, policy =>
@@ -34,7 +34,13 @@ kernelBuilder.AddOllamaChatCompletion(
 );
 
 // 2. Register your C# Tool
-kernelBuilder.Plugins.AddFromType<WeatherPlugin>();
+var openWeatherApiKey = builder.Configuration["OpenWeatherApiKey"];
+if (string.IsNullOrWhiteSpace(openWeatherApiKey))
+{
+    throw new InvalidOperationException(
+        "OpenWeatherApiKey is not configured. Set it in appsettings.Development.json.");
+}
+kernelBuilder.Plugins.AddFromObject(new WeatherPlugin(openWeatherApiKey));
 kernelBuilder.Plugins.AddFromType<WebResearchPlugin>();
 kernelBuilder.Plugins.AddFromType<CalculatorPlugin>();
 

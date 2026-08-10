@@ -46,3 +46,6 @@ Thumbs.db
 /.vs
 /bin
 /obj
+
+# Local secrets - real API keys go here, never committed
+appsettings.Development.json
