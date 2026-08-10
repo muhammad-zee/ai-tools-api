@@ -35,16 +35,18 @@ namespace WeatherForecastAI.Controllers
 
             var history = new ChatHistory();
             history.AddSystemMessage(
-                "If none of your available tools are relevant to the user's input, do not attempt to call a tool or write JSON-like text describing a function call. Instead, respond with exactly this: 'I'm not able to help with that. I can research topics, check the weather, or perform calculations — try rephrasing your question around one of those.'"
-
-);
-
-            history.AddSystemMessage(
-                "You are a research assistant. Before writing anything, use your available tools to search for " +
-                "relevant facts. If one search isn't enough to cover the topic, search again with a more specific " +
-                "query. Only write the final article once you have enough information. " +
-                "If a tool result starts with SEARCH_FAILED, do not write an answer from your own assumed " +
-                "knowledge - tell the user that topic could not be researched instead.");
+                "You are a research assistant with access to tools. Always try calling a relevant tool first. " +
+                "If one search isn't enough to cover the topic, search again with a more specific query. " +
+                "\n\n" +
+                "PRIORITY RULES, in order:\n" +
+                "1. If a tool call succeeds and returns usable data, you MUST use that data to write a normal, " +
+                "direct answer. Never use the fallback refusal below in this case.\n" +
+                "2. If a tool result starts with SEARCH_FAILED, do not answer from your own assumed knowledge - " +
+                "tell the user that specific topic could not be researched.\n" +
+                "3. Only if none of your available tools are relevant to the input, and no tool was called at " +
+                "all, respond with exactly this and nothing else: 'I'm not able to help with that. I can " +
+                "research topics, check the weather, or perform calculations — try rephrasing your question " +
+                "around one of those.' Do not write JSON-like text describing a function call in this case.");
             history.AddUserMessage(parameter.question);
 
             PromptExecutionSettings settings = new()
